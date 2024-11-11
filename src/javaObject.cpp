@@ -242,7 +242,7 @@ NAN_GETTER(JavaObject::fieldGetter) {
         jmethodID array_getLength = env->GetStaticMethodID(arrayClass, "getLength", "(Ljava/lang/Object;)I");
         jint arrayLength = env->CallStaticIntMethod(arrayClass, array_getLength, self->m_obj);
         assertNoException(env);
-        info.GetReturnValue().Set(arrayLength);
+        info.GetReturnValue().Set((int32_t) arrayLength);
         return;
       }
     }
@@ -320,7 +320,12 @@ NAN_INDEX_GETTER(JavaObject::indexGetter) {
   assertNoException(env);
   if ((jint)index >= arrayLength) {
     info.GetReturnValue().SetUndefined();
+#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 || \
+      (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
+    return v8::Intercepted::kYes;
+#else
     return;
+#endif
   }
 
   jmethodID array_get = env->GetStaticMethodID(arrayClass, "get", "(Ljava/lang/Object;I)Ljava/lang/Object;");
@@ -328,6 +333,13 @@ NAN_INDEX_GETTER(JavaObject::indexGetter) {
   assertNoException(env);
   v8::Local<v8::Value> result = javaToV8(self->m_java, env, item);
   info.GetReturnValue().Set(result);
+
+#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 || \
+    (V8_MAJOR_VERSION == 12 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION > 4))
+  return v8::Intercepted::kYes;
+#else
+  return;
+#endif
 }
 
 /*static*/ Nan::Persistent<v8::FunctionTemplate> JavaProxyObject::s_proxyCt;
